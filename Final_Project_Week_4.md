@@ -1,5 +1,16 @@
-Background
-==========
+---
+title: "Practical Machine Learning Project"
+author: "Leonardo Melo"
+date: ""
+output: 
+  html_document:
+              keep_md: true
+
+---
+
+
+
+# Background
 
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement -a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
 
@@ -7,11 +18,11 @@ In this project, the goal will be to use data from accelerometers on the belt, f
 
 The five ways are:
 
--   Exactly according to the specification (Class A),
--   Throwing the elbows to the front (Class B),
--   Lifting the dumbbell only halfway (Class C),
--   Lowering the dumbbell only halfway (Class D) and
--   Throwing the hips to the front (Class E).
+- Exactly according to the specification (Class A),
+- Throwing the elbows to the front (Class B),
+- Lifting the dumbbell only halfway (Class C),
+- Lowering the dumbbell only halfway (Class D) and
+- Throwing the hips to the front (Class E).
 
 Only Class A corresponds to correct performance.
 
@@ -23,12 +34,13 @@ The dataset is separated in training and testing set:
 
 [Testing Set](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
 
-Exploratory Data Analysis and Preprocessing
-===========================================
+
+# Exploratory Data Analysis and Preprocessing
 
 Reading Packages:
 
-``` r
+
+```r
 library(caret)
 library(corrplot)
 library(data.table)
@@ -41,7 +53,8 @@ library(summarytools)
 
 Downloading and reading datasets:
 
-``` r
+
+```r
 # Downloading and reading training data
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 file <- "pml-training.csv"
@@ -58,17 +71,23 @@ test <- fread(file)
 dim(train)
 ```
 
-    ## [1] 19622   160
+```
+## [1] 19622   160
+```
 
-``` r
+```r
 dim(test)
 ```
 
-    ## [1]  20 160
+```
+## [1]  20 160
+```
 
-While the training set contains 19622 observations, the test set only 20 rows, but both datasets contain 96 variables. There are missing values that should be correctly identified:
+While the training set contains 19622 observations, the test set only 20 rows, but both datasets contain 96 
+variables. There are missing values that should be correctly identified:
 
-``` r
+
+```r
 # Training set
 for (i in names(train)) {
     train[get(i) == "" | get(i) == "#DIV/0!" | get(i) == "<NA>", 
@@ -84,7 +103,8 @@ for (i in names(test)) {
 
 We can check if the classes are well distributed:
 
-``` r
+
+```r
 # Plotting proportions
 library(scales)
 ggplot(data = train, aes(x = classe, fill = classe)) +
@@ -93,29 +113,33 @@ ggplot(data = train, aes(x = classe, fill = classe)) +
     labs(title = "", y = "Proportion of Classes", x = "")
 ```
 
-<img src="Final_Project_Week_4_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+<img src="Final_Project_Week_4_files/figure-html/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
 
-From the plot, we can see that the classes are somewhat balanced.
+From the plot, we can see that the classes are somewhat balanced. 
+
 
 In the model, we will perform no imputation and we will only use features with no missing values:
 
-``` r
+
+```r
 # Creating a data.table with the proportion of NA values for each feature
 NA_columns <- data.table(names(train),
                          sapply(train, function(x) mean(is.na(x))))
 NA_columns %>% head() %>% kable()
 ```
 
-| V1                      |   V2|
-|:------------------------|----:|
-| V1                      |    0|
-| user\_name              |    0|
-| raw\_timestamp\_part\_1 |    0|
-| raw\_timestamp\_part\_2 |    0|
-| cvtd\_timestamp         |    0|
-| new\_window             |    0|
 
-``` r
+
+V1                      V2
+---------------------  ---
+V1                       0
+user_name                0
+raw_timestamp_part_1     0
+raw_timestamp_part_2     0
+cvtd_timestamp           0
+new_window               0
+
+```r
 # Selecting only those that have NA values
 NA_columns <- NA_columns[V2 > 0, V1]
 
@@ -124,9 +148,11 @@ train <- select(train, -c(V1, NA_columns))
 test <- select(test, -c(V1, NA_columns))
 ```
 
-Showing the features that are mostly related to a correct movement performance (Class A):
+Showing the features that are mostly related to a correct 
+movement performance (Class A):
 
-``` r
+
+```r
 # Transforming the outcome into a numerical dummy
 train[, numerical_class := ifelse(classe == "A", 1, 0)]
 
@@ -145,10 +171,11 @@ correlation <- correlation[high_corr_names, high_corr_names]
 corrplot.mixed(correlation, tl.col = "black", tl.pos = "lt")
 ```
 
-<img src="Final_Project_Week_4_files/figure-markdown_github/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
+<img src="Final_Project_Week_4_files/figure-html/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 <!-- From the correlation analysis, we can see that 8 variables demonstrated correlation  -->
 <!-- greater than 0.2 in absolute value. Let's examine the description of these variables: -->
+
 <!-- ```{r, message=FALSE, results='asis', fig.align='center'} -->
 <!-- library(summarytools) -->
 <!-- descr(select(train, high_corr_names, -numerical_class),  -->
@@ -156,18 +183,22 @@ corrplot.mixed(correlation, tl.col = "black", tl.pos = "lt")
 <!--       transpose = TRUE,  -->
 <!--       omit.headings = TRUE, style = "rmarkdown") -->
 <!-- ``` -->
+
 <!-- From the table above, we see that the variables completely different ranges. This is  -->
 <!-- important because if we train a algorithm using this raw data, it tend to be more -->
 <!-- bias prone. Hence, this is evidence that we might have to normalize the variables  -->
 <!-- before training an algorithm on this data.  -->
-Machine Learning Algorithm
-==========================
 
-A Random Forest algorithm will be used to obtain a predictive model, using 5-fold cross-validation. The original training set will be split into two new sets: a training (`train2`) and a validation (`validate`) sets
 
-We will first scale the data, then perform cross validation on the `train2`, estimate the model and then validate it using the `validate` set. The final step is to gather these two sets and estimate the final model using the hyperparameters chosen by the cross-validation strategy.
+# Machine Learning Algorithm
 
-``` r
+A Random Forest algorithm will be used to obtain a predictive model, using 5-fold cross-validation. The original training set will be split into two new sets: a training (`train2`) and a validation (`validate`) sets 
+
+We will first scale the data, then perform cross validation on the `train2`, estimate the model and then validate it using the `validate` set. The final step is to gather these two sets and estimate the final model using the hyperparameters chosen by the
+cross-validation strategy. 
+
+
+```r
 train <- select(train, 
                 -raw_timestamp_part_1, 
                 -raw_timestamp_part_2,
@@ -197,26 +228,29 @@ fit <- caret::train(classe ~., data = scaled_train2,
 
 This is the model performance on the validation dataset:
 
-``` r
+
+```r
 ConfusionMatrix <- confusionMatrix(predict(fit, scaled_validate), 
                                    as.factor(scaled_validate[, classe]))
 
 ConfusionMatrix$table %>% kable()
 ```
 
-|     |     A|    B|    C|    D|    E|
-|-----|-----:|----:|----:|----:|----:|
-| A   |  1395|    2|    0|    0|    0|
-| B   |     0|  946|    6|    0|    0|
-| C   |     0|    1|  849|    1|    0|
-| D   |     0|    0|    0|  803|    0|
-| E   |     0|    0|    0|    0|  901|
+         A     B     C     D     E
+---  -----  ----  ----  ----  ----
+A     1395     2     0     0     0
+B        0   946     6     0     0
+C        0     1   849     1     0
+D        0     0     0   803     0
+E        0     0     0     0   901
 
-The accuracy on this validation dataset is 99.8 %.
+The accuracy on this validation dataset is 99.8%. Which gives us a sample error of 0.2%.
 
-Finally, we use the hyperparameters from the previous model to train the final model in the complete original training set. We need to scale the
+Finally, we use the hyperparameters from the previous model to train the final model in the complete original training set.
+We need to scale the 
 
-``` r
+
+```r
 no_class_test <- select(test, colnames(select(train, -classe)))
 
 # Scaling
@@ -234,14 +268,19 @@ final_fit <- caret::train(classe ~., data = scaled_train,
                           importance = "impurity")
 ```
 
-    ## Growing trees.. Progress: 67%. Estimated remaining time: 15 seconds.
+```
+## Growing trees.. Progress: 90%. Estimated remaining time: 3 seconds.
+```
 
 And the final prediction is:
 
-``` r
+```r
 # Final prediction
 predict(final_fit, no_class_test) %>% as.character()
 ```
 
-    ##  [1] "B" "A" "B" "A" "A" "E" "D" "B" "A" "A" "B" "C" "B" "A" "E" "E" "A"
-    ## [18] "B" "B" "B"
+```
+##  [1] "B" "A" "B" "A" "A" "E" "D" "B" "A" "A" "B" "C" "B" "A" "E" "E" "A"
+## [18] "B" "B" "B"
+```
+
