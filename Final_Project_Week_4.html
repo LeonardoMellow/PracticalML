@@ -360,7 +360,7 @@ ConfusionMatrix$table %&gt;% kable()</code></pre>
 </tr>
 </tbody>
 </table>
-<p>The accuracy on this validation dataset is 99.8 %.</p>
+<p>The accuracy on this validation dataset is 99.8%. Which gives us a sample error of 0.2%.</p>
 <p>Finally, we use the hyperparameters from the previous model to train the final model in the complete original training set. We need to scale the</p>
 <pre class="r"><code>no_class_test &lt;- select(test, colnames(select(train, -classe)))
 
